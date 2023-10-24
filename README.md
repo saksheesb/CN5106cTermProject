@@ -12,4 +12,4 @@
 
 ## Summary
 
-This project aims to create a peer-to-peer (P2P) file transfer system. In the midpoint submission, we have achieved the following milestones:
+We've successfully executed the part of the project that not only establishes a network of peers but also seamlessly facilitates the retrieval of peer information and defines the common  properties of the system. Our system empowers us to effortlessly retrieve a comprehensive list of peers and efficiently generate file segments that are essential for sharing purposes. Moreover, the implementation of peer-to-peer handshaking ensures that our network is well-coordinated and ready to exchange data in a secure and efficient manner. The file transfer needs to be implemented.
