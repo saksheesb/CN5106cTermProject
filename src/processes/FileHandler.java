@@ -1,109 +1,104 @@
 package processes;
 
+import fileUtils.FileUtil;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
-import fileUtils.FileUtil;
-import utils.CommonProperties;
+import utils.GenericProperties;
 
 
-/**A class for managing the Files
- * Downloaded on Local Peers
- *
- * This is observable class.  Process
- * class is it's observer
- *
- * @author
- *
+/**
+ A class responsible for handling files downloaded to local peers.
+ This class is observable, and the Process class serves as its observer.
  */
 public class FileHandler {
 
     // A BitSet for Maintaining the Parts
-    private BitSet downloadedParts;
+    private BitSet fetchedSegments;
 
     // FileObservers(Process in our case)
-    private final List<FileObserver> observers = new ArrayList<>();
+    private final List<FileObserver> obs = new ArrayList<>();
 
-    // The CommonProperties
-    private CommonProperties properties;
+    // The CommProperties
+    private GenericProperties props;
 
-    // The current Peer
+    // current Peer
     private Peer peer;
 
-    //FileUtil Object
+    // FileUtil Object
     private FileUtil fileUtil;
 
 
-    // Total Number of Pieces to be downloaded
-    // This is also the size of BitVector
-    private int numberOfPieces;
+    // Total count of segments to be downloaded
+    // This also defines the size of the BitVector
+    private int numOfSegments;
 
 
-    FileHandler(Peer peer, CommonProperties properties){
-        this.properties = properties;
+    FileHandler(Peer peer, GenericProperties props){
+        this.props = props;
         this.peer = peer;
-        this.numberOfPieces = (int) Math.ceil(properties.getFileSize()*1.0/ properties.getPieceSize());
-        System.out.println("From FileHandler"+numberOfPieces);
-        downloadedParts = new BitSet(numberOfPieces);
-        fileUtil = new FileUtil(peer.peerId, properties.getFileName());
+        this.numOfSegments = (int) Math.ceil(props.getSizeOfFile()*1.0/ props.getSegmentSize());
+        System.out.println("From FileHandler"+ numOfSegments);
+        fetchedSegments = new BitSet(numOfSegments);
+        fileUtil = new FileUtil(peer.pId, props.getNameOfFile());
     }
 
 
-    // Write a part to file
-    // Synchronized as many have access to same fileHandler Object
-    // Only 1 fileHandler Object is created
+    // Write a segment to the file
+    // Synchronized to ensure exclusive access, as multiple threads may access the same fileHandler object
+    // A single fileHandler object is instantiated for this purpose
     public synchronized void writePiece (int part_id, byte[] part) {
 
-        //Check if index bitset is already set.
-        //If yes the file exists
-        //If no write the file
-        final boolean isNew = !downloadedParts.get(part_id);
-        downloadedParts.set (part_id);
+        // Verify if the bit at the given index in the bitset is set.
+        // If it is set, the file segment already exists.
+        // If it is not set, proceed to write the file segment.
+        final boolean isPresent = !fetchedSegments.get(part_id);
+        fetchedSegments.set (part_id);
 
-        //Check if all bits are recieved
-        // Notify the observers
-        if (isNew) {
-            fileUtil.writeFilePiece(part, part_id);
-            observers.forEach(observer -> observer.updateFilePartArrived(part_id));
+        //Check if all bits are received and ack the observers
+        if (isPresent) {
+            fileUtil.writeFileSegment(part, part_id);
+            obs.forEach(observer -> observer.notifyFileSegmentArrived(part_id));
         }
 
-        //Check if wholeFile is complete and
-        //notify the observer
-        if(hasrecievedAllParts()) {
-            fileUtil.mergeFile(downloadedParts.cardinality());
-            observers.forEach(observer -> observer.updateFileDownloadFinished());
+        //Check if whole File is complete and ack the observer
+        if(hasReceivedAllSegments()) {
+            fileUtil.combineFile(fetchedSegments.cardinality());
+            obs.forEach(observer -> observer.notifyFileDownload());
         }
     }
 
 
-
-    /*** Returns whether all parts are recieved or not
+    /**
+     * Indicates whether all segments have been received.
      *
-     * @return true if finished
+     * @return true if all segments are received, otherwise false.
      */
-    public boolean hasrecievedAllParts() {
-        for(int i=0;i<numberOfPieces;i++) {
-            if(!downloadedParts.get(i)) return false;
+    public boolean hasReceivedAllSegments() {
+        for(int i = 0; i< numOfSegments; i++) {
+            if(!fetchedSegments.get(i)) return false;
         }
         return true;
     }
 
-    /**Get parts to request from a Peer
-     * Select A random Index from parts not recieved
+    /**
+     * Determines which segments to request from a given peer.
+     * Selects a random index from the list of segments not yet received.
      *
-     * @param bitsetAvailableFromPeer
-     * @return
+     * @param bitsetAvailableFromPeer The bitset representing segments available from the peer.
+     * @return The index of the segment to request.
      */
-    public synchronized int getPartToRequest(BitSet bitsetAvailableFromPeer ) {
-        bitsetAvailableFromPeer.andNot((BitSet) downloadedParts.clone());
-        return pickRandomIndex (bitsetAvailableFromPeer);
+
+    public synchronized int getSegmentToReq(BitSet bitsetAvailableFromPeer ) {
+        bitsetAvailableFromPeer.andNot((BitSet) fetchedSegments.clone());
+        return getRandIndex(bitsetAvailableFromPeer);
     }
 
     /**
-     *  Return if requested peice is present locally
+     *  Return if requested segment is present locally
      */
     public synchronized boolean hasPiece(int pieceIndex) {
-        return downloadedParts.get(pieceIndex);
+        return fetchedSegments.get(pieceIndex);
     }
 
     /**Get a random Index from set elements in Bitset
@@ -111,7 +106,7 @@ public class FileHandler {
      * @param bs
      * @return
      */
-    public int pickRandomIndex(BitSet bs) {
+    public int getRandIndex(BitSet bs) {
         String set = bs.toString();
         String[] indices = set.substring(1, set.length()-1).split(",");
         return Integer.parseInt(indices[(int)(Math.random()*(indices.length-1))].trim());
@@ -120,9 +115,9 @@ public class FileHandler {
     /**Setting All Parts to True
      *
      */
-    public synchronized void setAllParts()
+    public synchronized void setAllSegmentsToTrue()
     {
-        downloadedParts.set(0, numberOfPieces,true);
+        fetchedSegments.set(0, numOfSegments,true);
     }
     /**Gets the currently set element in Bitset
      * This is equal to number of pieces recieved
@@ -130,44 +125,44 @@ public class FileHandler {
      * @return
      */
     public synchronized int getNumberOfReceivedParts() {
-        return downloadedParts.cardinality();
+        return fetchedSegments.cardinality();
     }
 
     /**
      *
      * @return copy of  downloaded biset
      */
-    public synchronized BitSet getDownloadedParts() {
-        return (BitSet) downloadedParts.clone();
+    public synchronized BitSet getFetchedSegments() {
+        return (BitSet) fetchedSegments.clone();
     }
 
-    /**Get the a piece of file of given partId
+    /**Get the piece of file of given partId
      *
      * @param partId
      * @return
      */
-    byte[] getPiece (int partId) {
-        byte[] piece = fileUtil.getPieceAsBytes(partId);
+    byte[] getSegment(int partId) {
+        byte[] piece = fileUtil.fetchSegmentAsByteArray(partId);
         return piece;
     }
 
-    public void attach (FileObserver fileObserver) {
-        observers.add (fileObserver);
+    public void attach(FileObserver fileObserver) {
+        obs.add (fileObserver);
     }
 
     /**
-     * If has file. Then split the file into pieces
+     * If it has file. Then split the file into segments
      */
-    public void splitFile(){
-        fileUtil.splitFile(properties.getPieceSize());
+    public void divideFile(){
+        fileUtil.divideFile(props.getSegmentSize());
     }
 
     /**
      *
-     * @return The Number of Pieces of File
+     * @return The Number of Pieces of a File
      */
-    public int getNumberOfPieces() {
-        return numberOfPieces;
+    public int getNumOfSegments() {
+        return numOfSegments;
     }
 
 }

@@ -17,71 +17,71 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class Peer {
 
-    public final int peerId;
+    public final int pId;
 
     public final String IP;
 
-    public final int port;
+    public final int portNum;
 
-    public final boolean hasFile;
+    public final boolean filePresent;
 
-    public AtomicInteger bytesDownloaded;
+    public AtomicInteger downloadedBytes;
 
-    public BitSet recievedSegments;
+    public BitSet receivedSegment;
 
     private final AtomicBoolean interested;
 
     // Constructor
 
-    public Peer(int peerId , String IP, int port, boolean hasFile) {
+    public Peer(int pId, String IP, int portNum, boolean filePresent) {
 
-        this.peerId = peerId;
+        this.pId = pId;
 
         this.IP = IP;
 
-        this.port = port;
+        this.portNum = portNum;
 
-        this.hasFile = hasFile;
+        this.filePresent = filePresent;
 
-        this.bytesDownloaded = new AtomicInteger (0);
+        this.downloadedBytes = new AtomicInteger (0);
 
-        this.recievedSegments = new BitSet();
+        this.receivedSegment = new BitSet();
 
         this.interested = new AtomicBoolean (false);
     }
 
     // Getters and Setters
 
-    public AtomicInteger getBytesDownloaded() {
-        return bytesDownloaded;
+    public AtomicInteger getDownloadedBytes() {
+        return downloadedBytes;
     }
 
-    public void setBytesDownloaded(int bytes) {
-        this.bytesDownloaded.set(bytes);
+    public void setDownloadedBytes(int bytes) {
+        this.downloadedBytes.set(bytes);
     }
 
-    public BitSet getRecievedSegments() {
-        return recievedSegments;
+    public BitSet getReceivedSegment() {
+        return receivedSegment;
     }
 
-    public void setRecievedSegments(BitSet recievedSegments) {
-        this.recievedSegments = recievedSegments;
+    public void setReceivedSegment(BitSet receivedSegment) {
+        this.receivedSegment = receivedSegment;
     }
 
-    public int getPeerId() {
-        return peerId;
+    public int getpId() {
+        return pId;
     }
 
     public String getIP() {
         return IP;
     }
 
-    public int getPort() {
-        return port;
+    public int getPortNum() {
+        return portNum;
     }
 
     public boolean HasFile() {
-        return hasFile;
+        return filePresent;
     }
 
     public Boolean isInterested() {
@@ -96,17 +96,17 @@ public class Peer {
     @Override
     public boolean equals(Object obj) {
         if (!(obj instanceof Peer)) return false;
-        return  ((Peer) obj).getPeerId() == this.getPeerId();
+        return  ((Peer) obj).getpId() == this.getpId();
     }
 
     @Override
     public int hashCode() {
         //Can use peer ID as hashcode
-        return this.peerId;
+        return this.pId;
     }
 
     @Override
     public String toString() {
-        return "Peer : "+this.peerId +"  Address : "+ this.IP +"  Port : "+ this.port;
+        return "Peer : "+this.pId +"  Address : "+ this.IP +"  Port : "+ this.portNum;
     }
 }

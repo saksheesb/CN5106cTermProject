@@ -1,5 +1,5 @@
 a:
-	javac fileUtils/*.java loggers/*.java messages/*.java processes/*.java utils/*.java
+	javac fileUtils/*.java loggers/*.java processes/*.java utils/*.java
 
 clean:
 	rm */*.class

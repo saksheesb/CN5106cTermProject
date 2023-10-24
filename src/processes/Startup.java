@@ -5,17 +5,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import loggers.LogWriter;
-import utils.CommonProperties;
+import utils.GenericProperties;
 import utils.Constants;
-import utils.PeerInfoLoader;
+import utils.LoadPeerInfo;
 
-/**This class is entry point to our project.
- * It loads the properties from CoomonInfo.cfg
- * and PeerInfo.cfg, intializes logger and then
- * starts the P2P Process
- *
- * @author
- *
+/**
+ This class serves as the starting point for our project.
+ It reads configuration settings from CommonInfo.cfg and PeerInfo.cfg,
+ sets up the logging system, and initiates the P2P process.
  */
 
 public class Startup {
@@ -27,48 +24,45 @@ public class Startup {
                     + "Here <PeerId> is the Id with which the process should be started");
         }
 
-        final int peerId = Integer.parseInt(args[0]);
+        final int pId = Integer.parseInt(args[0]); //pId = peerId
 
-        // Initialize the Logger
-        LogWriter.initialize(peerId);
+        // Initializes the Logger
+        LogWriter.initialize(pId);
 
-        // Read Properties from Common.cfg
-        CommonProperties properties = new CommonProperties(Constants.COMMON_CONFIG_FILE);
+        // Read props from Common.cfg
+        GenericProperties commonProp = new GenericProperties(Constants.COMM_CONFIGURATION_FILE);
 
-        //Read Peer Info
-        PeerInfoLoader pInfo = new PeerInfoLoader();
+        // Read Peer Info
+        LoadPeerInfo peerInfo = new LoadPeerInfo();
 
-        // This is whole list of Peers
-        List<Peer> peerList = pInfo.load(Constants.PEER_INFO_FILE);
+        // This is an array of all the Peers
+        List<Peer> peerArr = peerInfo.loadPeers(Constants.PEER_INFO_FILE);
 
 
-        // This is List of Peer to connect to
-        List<Peer> peersToConnect = new ArrayList<>();
+        // This is array of Peer to connect to in the network
+        List<Peer> p2Connect = new ArrayList<>();
 
-        Peer current = null;  // Store current peer info
+        Peer curr = null;  // to assign current peer info
 
-        for(Peer p : peerList )
+        for(Peer p : peerArr )
         {
-            if(p.getPeerId() < peerId )
-                peersToConnect.add(p);
+            if(p.getpId() < pId )
+                p2Connect.add(p);
 
-            else if(p.getPeerId() == peerId)
-            {current =  p;
+            else if(p.getpId() == pId)
+            {
+                curr =  p;
             }
         }
 
-        peerList.remove(current);
-     /*   System.out.println(current);
-        for(Peer p :peersToConnect) {
-        	System.out.println(p);
-        }*/
+        peerArr.remove(curr);
 
-        for(Peer p :peerList) {
+        for(Peer p :peerArr) {
             System.out.println(p);
         }
 
-        //Delegate Call
-        Process process =  new Process(current, peerList, properties);
+        // Invoke Call
+        Process process =  new Process(curr, peerArr, commonProp);
         process.setup();
 
     }

@@ -1,85 +1,81 @@
 package fileUtils;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import loggers.LogWriter;
 
+import java.io.FileOutputStream;
+import java.io.FileInputStream;
+import java.io.File;
+import java.util.List;
+import java.io.IOException;
+import java.util.ArrayList;
 
-/**Contains code for Merging and Spitting the Files
- *
- *
- * @author
- *
+
+/**
+ Includes logic for splitting and combining files.
  */
 
 public class FileUtil {
 
-    // File to be merged to
+    // Destination file for the merge
     private final File file;
-    // Directory where files are stored
-    private final File partsDirectory;
 
-    // Original FileName as string
-    private final String fileName;
+    private final File pDir; // directory of parts, directory where files are saved
 
-    public FileUtil(int peerId, String fileName){
-        partsDirectory = new File("./PEER_" + peerId + "/files/parts/"+fileName);
-        partsDirectory.mkdirs();
-        this.fileName = fileName;
+    private final String fName; // file name
 
-        //Make Downloaded File Directory
-        File dir = new File("./PEER_" + peerId + "/files/downloaded/");
-        dir.mkdirs();
-        file = new File("./PEER_" + peerId + "/files/downloaded/"+ fileName);
+    public FileUtil(int peerId, String fName){
+        pDir = new File("./PEER_" + peerId + "/files/parts/"+ fName); // building directory path
+        pDir.mkdirs(); // creating directory
+        this.fName = fName; // setting the  file name to file name
+
+        // Create directory for downloaded files
+        File directory = new File("./PEER_" + peerId + "/files/downloaded/");
+        directory.mkdirs();
+        file = new File("./PEER_" + peerId + "/files/downloaded/"+ fName);
     }
 
 
-    /* Split the file */
-    public void split(File inputFile, int partSize){
-        FileInputStream fis;
-        String outFile;
-        FileOutputStream fos;
+    // function for splitting the file
+    public void divide(File inputFile, int partSize){
+        FileInputStream fileIS;
+        String outputFile;
+        FileOutputStream fileOS;
         // Size of file
-        int size = (int) inputFile.length();
-        int peieceNumber = 0, readLength = partSize;
+        int pieceNum = 0;
+        int readLen = partSize;
         byte[] piece;
+        int size = (int) inputFile.length();
         try {
-            fis = new FileInputStream(inputFile);
+            fileIS = new FileInputStream(inputFile);
 
-            for(;size > 0; peieceNumber++){
+            for(;size > 0; pieceNum++){
 
                 if (size <= partSize) {
-                    readLength = size;
+                    readLen = size;
                 }
-                piece = new byte[readLength];
-                size  -= fis.read(piece, 0, readLength);
+                piece = new byte[readLen];
+                size  -= fileIS.read(piece, 0, readLen);
 
 
-                outFile = partsDirectory + "/" + Integer.toString(peieceNumber);
-                fos = new FileOutputStream(new File(outFile));
-                fos.write(piece);
-                fos.flush();
-                fos.close();
-                piece = null;
-                fos = null;
+                outputFile = pDir + "/" + pieceNum;
+                fileOS = new FileOutputStream(outputFile);
+                fileOS.write(piece);
+                fileOS.flush();
+                fileOS.close();
             }
-            fis.close();
+            fileIS.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public byte[] getPieceAsBytes(int partId) {
-        File file = new File(partsDirectory.getAbsolutePath() + "/" + partId);
-        return readPiece(file);
+    public byte[] fetchSegmentAsByteArray(int partId) {
+        File file = new File(pDir.getAbsolutePath() + "/" + partId);
+        return readSegment(file);
     }
 
-    public void writeFilePiece(byte[] part, int partId) {
-        File output = new File(partsDirectory.getAbsolutePath() + "/" + partId);
+    public void writeFileSegment(byte[] part, int partId) {
+        File output = new File(pDir.getAbsolutePath() + "/" + partId);
         try(FileOutputStream fos= new FileOutputStream(output)) {
             fos.write(part);
             fos.flush();
@@ -88,12 +84,9 @@ public class FileUtil {
         }
     }
 
-    private byte[] readPiece(File peice){
-        //FileInputStream fis = null;
-        try(FileInputStream fis = new FileInputStream(peice);) {
-            //fis = new FileInputStream(peice);
-            byte[] read = new byte[(int) peice.length()];
-            int bytesRead = fis.read(read, 0, (int) peice.length());
+    private byte[] readSegment(File piece){
+        try(FileInputStream fis = new FileInputStream(piece);) {
+            byte[] read = new byte[(int) piece.length()];
             fis.close();
             return read;
         } catch (Exception e) {
@@ -103,37 +96,28 @@ public class FileUtil {
 
     }
 
-    public void splitFile(int partSize){
-        split(new File(fileName), partSize);
+    public void divideFile(int partSize){
+        divide(new File(fName), partSize);
     }
 
-    public void mergeFile(int numParts) {
+    public void combineFile(int numParts) {
         File out = file;
-        //FileOutputStream fos;
         FileInputStream fis;
         byte[] fileBytes;
-        int bytesRead = 0;
-
-        // Add to List instead of single Line
-        // File [] files = partsDirectory.listFiles()
-        // As order  can be random
 
         List<File> pieces = new ArrayList<>();
 
         for (int i = 0; i < numParts; i++) {
-            pieces.add(new File(partsDirectory.getPath() + "/" + i));
+            pieces.add(new File(pDir.getPath() + "/" + i));
         }
 
         try(FileOutputStream fos = new FileOutputStream(out)){
             for (File file : pieces) {
                 fis = new FileInputStream(file);
                 fileBytes = new byte[(int) file.length()];
-                bytesRead = fis.read(fileBytes, 0, (int) file.length());
                 fos.write(fileBytes);
                 fos.flush();
-                fileBytes = null;
                 fis.close();
-                fis = null;
             }
         } catch (Exception exception) {
             exception.printStackTrace();
